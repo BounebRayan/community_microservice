@@ -2,7 +2,7 @@
 const saveMessage = require('../services/save-message');
 const getMessage = require('../services/get-message');
 const leaveRoom = require('../utils/leave-room');
-const CHAT_BOT = 'FrimaIQBot';
+const CHAT_BOT = process.env.CHAT_BOT;
 let allUsers = [];
 
 module.exports = (io) => {
