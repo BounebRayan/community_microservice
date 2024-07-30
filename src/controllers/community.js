@@ -2,17 +2,18 @@
 const saveMessage = require('../services/save-message');
 const getMessage = require('../services/get-message');
 const leaveRoom = require('../utils/leave-room');
+const auth = require('../controllers/middlewares/auth');
 const CHAT_BOT = process.env.CHAT_BOT;
 let allUsers = [];
 
 module.exports = (io) => {
     // Connection established
+    /*io.use(auth)*/
     io.on('connection', (socket) => {
         console.log(`User connected ${socket.id}`);
 
         // join_room event emit from client-frontend 
         socket.on('join_room', (data) => {
-            console.log("joined");
             // data will include user's info name, lastname, pic_url, user_id/profile_url, region?
             // room is a string variable. A user may selected one from list of selected rooms in the frontend.
             const { username, room } = data;
@@ -82,8 +83,8 @@ module.exports = (io) => {
             const user = allUsers.find((user) => user.id == socket.id);
             if (user?.username) {
               allUsers = leaveRoom(socket.id, allUsers);
-              socket.to(chatRoom).emit('chatroom_users', allUsers);
-              socket.to(chatRoom).emit('receive_message', {
+              socket.to(room).emit('chatroom_users', allUsers);
+              socket.to(room).emit('receive_message', {
                 message: `${user.username} has disconnected from the chat.`,
               });
             }
