@@ -5,7 +5,8 @@ const leaveRoom = require('../utils/leave-room');
 const auth = require('../controllers/middlewares/auth');
 const CHAT_BOT = process.env.CHAT_BOT;
 let allUsers = [];
-let rooms = {};
+let chatRoom = '';
+let rooms = []; // this is for keeping track of a users joined rooms even if when disconnects save to db
 
 module.exports = (io) => {
     // Connection established
@@ -13,13 +14,17 @@ module.exports = (io) => {
     io.on('connection', (socket) => {
         console.log(`User connected ${socket.id}`);
 
+        //socket.emmit('rooms', rooms.filter((data) => data.userid === socket.decoded.userid)))
+
         // join_room event emit from client-frontend 
         socket.on('join_room', (data) => {
             // data will include user's info name, lastname, pic_url, user_id/profile_url, region? sockey.decoded for the token infos
             // room is a string variable. A user may selected one from list of selected rooms in the frontend.
             const { username, room } = data;
             socket.join(room);
-            
+
+            //rooms.push({socket.decoded.userid,room});
+            chatRoom=room;
             // add the user to the list of all users across all rooms
             allUsers.push({ id: socket.id, username, room });
             // get users by current room
@@ -31,6 +36,7 @@ module.exports = (io) => {
 
             getMessage(room)
                 .then((last100Messages) => {
+                    //console.log(last100Messages);
                     socket.emit('last_100_messages', last100Messages);
                 })
                 .catch((err) => console.log(err));
@@ -77,6 +83,7 @@ module.exports = (io) => {
               __createdtime__,
             });
             console.log(`${username} has left the chat`);
+            //rooms = rooms.filter((data)=>data.userid != socket.decoded.userid || data.room != room);
         });
 
         socket.on('disconnect', () => {
@@ -84,8 +91,8 @@ module.exports = (io) => {
             const user = allUsers.find((user) => user.id == socket.id);
             if (user?.username) {
               allUsers = leaveRoom(socket.id, allUsers);
-              socket.to(room).emit('chatroom_users', allUsers);
-              socket.to(room).emit('receive_message', {
+              socket.to(chatRoom).emit('chatroom_users', allUsers);
+              socket.to(chatRoom).emit('receive_message', {
                 message: `${user.username} has disconnected from the chat.`,
               });
             }
