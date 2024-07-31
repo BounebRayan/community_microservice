@@ -8,13 +8,12 @@ let allUsers = [];
 
 module.exports = (io) => {
     // Connection established
-    /*io.use(auth)*/
-    io.on('connection', (socket) => {
+    io.use(auth).on('connection', (socket) => {
         console.log(`User connected ${socket.id}`);
 
         // join_room event emit from client-frontend 
         socket.on('join_room', (data) => {
-            // data will include user's info name, lastname, pic_url, user_id/profile_url, region?
+            // data will include user's info name, lastname, pic_url, user_id/profile_url, region? sockey.decoded for the token infos
             // room is a string variable. A user may selected one from list of selected rooms in the frontend.
             const { username, room } = data;
             socket.join(room);
