@@ -5,10 +5,12 @@ const leaveRoom = require('../utils/leave-room');
 const auth = require('../controllers/middlewares/auth');
 const CHAT_BOT = process.env.CHAT_BOT;
 let allUsers = [];
+let rooms = {};
 
 module.exports = (io) => {
     // Connection established
-    io.use(auth).on('connection', (socket) => {
+    /*io.use(auth)*/
+    io.on('connection', (socket) => {
         console.log(`User connected ${socket.id}`);
 
         // join_room event emit from client-frontend 
