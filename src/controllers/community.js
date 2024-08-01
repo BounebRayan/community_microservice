@@ -18,11 +18,11 @@ module.exports = (io) => {
 
         // join_room event emit from client-frontend 
         socket.on('join_room', (data) => {
+            // if(chatRoom){socket.leave(chatRoom)}; // only one room active at a time ?
             // data will include user's info name, lastname, pic_url, user_id/profile_url, region? sockey.decoded for the token infos
             // room is a string variable. A user may selected one from list of selected rooms in the frontend.
             const { username, room } = data;
             socket.join(room);
-
             //rooms.push({socket.decoded.userid,room});
             chatRoom=room;
             // add the user to the list of all users across all rooms
@@ -83,7 +83,7 @@ module.exports = (io) => {
               __createdtime__,
             });
             console.log(`${username} has left the chat`);
-            //rooms = rooms.filter((data)=>data.userid != socket.decoded.userid || data.room != room);
+            // rooms = rooms.filter((data)=>data.userid != socket.decoded.userid || data.room != room);
         });
 
         socket.on('disconnect', () => {

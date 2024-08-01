@@ -1,7 +1,7 @@
 // server/services/harper-save-message.js
 const connectToDatabase = require('../database/connexion');
 
-async function saveMessage(message, username, room) {
+async function saveMessage(message, username, room, __createdtime__) {
   try {
     const { db, client } = await connectToDatabase();
     const collection = db.collection('messages');
@@ -10,7 +10,7 @@ async function saveMessage(message, username, room) {
       message,
       username,
       room,
-      createdAt: new Date(), // Optionally add a timestamp
+      __createdtime__
     });
 
     return result.insertedId;

@@ -7,7 +7,7 @@ async function getMessages(room) {
     const collection = db.collection('messages');
 
     const messages = await collection.find({ room })
-      .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+      .sort({ __createdtime__: -1 }) // Sort by createdAt in descending order
       .limit(100) // Limit to 100 messages
       .toArray();
 
