@@ -1,9 +1,15 @@
-const db = require('../database/connexion'); // Adjust the path if necessary
+const connectToDatabase = require('../database/connexion');
+const { ObjectId } = require('mongodb');
+
 
 const reactMessage = async (messageId, reaction, username) => {
     try {
-        await db.collection('messages').updateOne(
-            { _id: messageId },
+        const { db, client } = await connectToDatabase();
+        const collection = db.collection('messages');
+        const id = new ObjectId(messageId);
+
+        const res= await collection.updateOne(
+            { _id: id },
             { $push: { reactions: { reaction, username } } }
         );
     } catch (error) {

@@ -1,4 +1,3 @@
-// server/services/getMessages.js
 const connectToDatabase = require('../database/connexion');
 
 async function getMessages(room) {
@@ -7,8 +6,8 @@ async function getMessages(room) {
     const collection = db.collection('messages');
 
     const messages = await collection.find({ room })
-      .sort({ __createdtime__: -1 }) // Sort by createdAt in descending order
-      .limit(100) // Limit to 100 messages
+      .sort({ __createdtime__: -1 })
+      .limit(100)
       .toArray();
 
     return messages;
