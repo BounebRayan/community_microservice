@@ -1,18 +1,19 @@
 const saveMessage = require('../services/save-message');
 const getMessage = require('../services/get-message');
-const searchMessages = require('../services/search-messages'); // New service for searching messages
+const searchMessages = require('../services/search-messages');
 const leaveRoom = require('../utils/leave-room');
+const reactMessage = require('../services/react-message');
+
 const CHAT_BOT = process.env.CHAT_BOT;
 let allUsers = [];
 let chatRoom = '';
-let rooms = []; // this is for keeping track of a users joined rooms even if when disconnects save to db
+let rooms = []; 
+let onlineUsers = {}; // Track online users
 
 module.exports = (io) => {
-    // Connection established
     io.on('connection', (socket) => {
         console.log(`User connected ${socket.id}`);
 
-        // User joins a room
         socket.on('join_room', (data) => {
             const { username, room } = data;
             socket.join(room);
@@ -22,7 +23,6 @@ module.exports = (io) => {
             socket.to(room).emit('chatroom_users', chatRoomUsers);
             socket.emit('chatroom_users', chatRoomUsers);
 
-            // Fetch last 100 messages for the room
             getMessage(room)
                 .then((last100Messages) => {
                     socket.emit('last_100_messages', last100Messages);
@@ -31,21 +31,18 @@ module.exports = (io) => {
 
             let __createdtime__ = Date.now();
 
-            // Welcome message from chat bot
             socket.emit('receive_message', {
                 message: `Welcome ${username}`,
                 username: CHAT_BOT,
                 __createdtime__,
             });
 
-            // Notify others in the room
             socket.to(room).emit('receive_message', {
                 message: `${username} has joined the chat room`,
                 username: CHAT_BOT,
                 __createdtime__,
             });
 
-            // Handle sending messages
             socket.on('send_message', (data) => {
                 const { message, username, room, __createdtime__ } = data;
                 io.in(room).emit('receive_message', data); 
@@ -53,9 +50,32 @@ module.exports = (io) => {
                   .then((response) => console.log(response))
                   .catch((err) => console.log(err));
             });
+            socket.on('react_message', async (data) => {
+                const { messageId, reaction, username, room } = data;
+                try {
+                    await reactMessage(messageId, reaction, username);
+                    io.in(room).emit('message_reacted', { messageId, reaction, username });
+                } catch (error) {
+                    socket.emit('error', 'Could not react to message');
+                }
+            });
+            // Track user presence
+            socket.on('user_online', (data) => {
+                const { username, userId } = data;
+                onlineUsers[userId] = { username, socketId: socket.id };
+                io.emit('online_users', onlineUsers);
+            });
+
+            socket.on('disconnect', () => {
+                for (const userId in onlineUsers) {
+                    if (onlineUsers[userId].socketId === socket.id) {
+                        delete onlineUsers[userId];
+                    }
+                }
+                io.emit('online_users', onlineUsers);
+            });
         });
 
-        // User leaves a room
         socket.on('leave_room', (data) => {
             const { username, room } = data;
             socket.leave(room);
@@ -70,7 +90,6 @@ module.exports = (io) => {
             console.log(`${username} has left the chat`);
         });
 
-        // User disconnects
         socket.on('disconnect', () => {
             console.log('User disconnected from the chat');
             const user = allUsers.find((user) => user.id == socket.id);
@@ -83,7 +102,6 @@ module.exports = (io) => {
             }
         });
 
-        // Search messages in a room
         socket.on('search_messages', async ({ room, searchTerm }) => {
             try {
                 const results = await searchMessages(room, searchTerm);
@@ -92,22 +110,13 @@ module.exports = (io) => {
                 socket.emit('error', 'Could not perform search');
             }
         });
-                socket.on('typing', (room) => {
-                socket.to(room).emit('typing', socket.id);
+
+        socket.on('typing', (room) => {
+            socket.to(room).emit('typing', socket.id);
         });
 
-                socket.on('stop_typing', (room) => {
-                 socket.to(room).emit('stop_typing', socket.id);
+        socket.on('stop_typing', (room) => {
+            socket.to(room).emit('stop_typing', socket.id);
         });
-        socket.on('edit_message', async (data) => {
-            const { messageId, newMessage, room } = data;
-            try {
-                await editMessage(messageId, newMessage);
-                io.in(room).emit('message_edited', { messageId, newMessage });
-            } catch (error) {
-                socket.emit('error', 'Could not edit message');
-            }
-        });
-        
     });
 }
