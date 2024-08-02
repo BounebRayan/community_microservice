@@ -1,19 +1,15 @@
-const room = require('../models/Room');
+const db = require('../database/connexion');
 
 const searchMessages = async (room, searchTerm) => {
     try {
-        const roomData = await room.findOne({ name: room });
-        if (!roomData) throw new Error('Room not found');
-        
-        const messages = roomData.messages.filter(message =>
-            message.content.includes(searchTerm)
-        );
-        return messages;
+        const results = await db.collection('messages')
+            .find({ room: room, message: { $regex: searchTerm, $options: 'i' } })
+            .toArray();
+        return results;
     } catch (error) {
-        console.error(error);
+        console.error('Error searching messages:', error);
         throw error;
     }
 };
 
 module.exports = searchMessages;
-
