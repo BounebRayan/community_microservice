@@ -1,8 +1,7 @@
-
 const saveMessage = require('../services/save-message');
 const getMessage = require('../services/get-message');
+const searchMessages = require('../services/search-messages'); // New service for searching messages
 const leaveRoom = require('../utils/leave-room');
-const auth = require('../controllers/middlewares/auth');
 const CHAT_BOT = process.env.CHAT_BOT;
 let allUsers = [];
 let chatRoom = '';
@@ -10,71 +9,57 @@ let rooms = []; // this is for keeping track of a users joined rooms even if whe
 
 module.exports = (io) => {
     // Connection established
-    /*io.use(auth)*/
     io.on('connection', (socket) => {
         console.log(`User connected ${socket.id}`);
 
-        //socket.emmit('rooms', rooms.filter((data) => data.userid === socket.decoded.userid)))
-
-        // join_room event emit from client-frontend 
+        // User joins a room
         socket.on('join_room', (data) => {
-            // if(chatRoom){socket.leave(chatRoom)}; // only one room active at a time ?
-            // data will include user's info name, lastname, pic_url, user_id/profile_url, region? sockey.decoded for the token infos
-            // room is a string variable. A user may selected one from list of selected rooms in the frontend.
             const { username, room } = data;
             socket.join(room);
-            //rooms.push({socket.decoded.userid,room});
-            chatRoom=room;
-            // add the user to the list of all users across all rooms
+            chatRoom = room;
             allUsers.push({ id: socket.id, username, room });
-            // get users by current room
             chatRoomUsers = allUsers.filter((user) => user.room === room);
-            // forward the list of room users to all other users within the room
             socket.to(room).emit('chatroom_users', chatRoomUsers);
-            // forward the list of room users to the current user
             socket.emit('chatroom_users', chatRoomUsers);
 
+            // Fetch last 100 messages for the room
             getMessage(room)
                 .then((last100Messages) => {
-                    //console.log(last100Messages);
                     socket.emit('last_100_messages', last100Messages);
                 })
                 .catch((err) => console.log(err));
 
-
             let __createdtime__ = Date.now();
-          
-            // Send message to the user
+
+            // Welcome message from chat bot
             socket.emit('receive_message', {
                 message: `Welcome ${username}`,
                 username: CHAT_BOT,
                 __createdtime__,
             });
 
-            // Send message to all users currently in the room, apart from the user that just joined
+            // Notify others in the room
             socket.to(room).emit('receive_message', {
                 message: `${username} has joined the chat room`,
                 username: CHAT_BOT,
                 __createdtime__,
             });
 
-            // When current user sends a message
+            // Handle sending messages
             socket.on('send_message', (data) => {
                 const { message, username, room, __createdtime__ } = data;
-                // Send to all users in room, including sender (io not socket used)
                 io.in(room).emit('receive_message', data); 
-                // Save message in db
-                saveMessage(message, username, room, __createdtime__) 
+                saveMessage(message, username, room, __createdtime__)
                   .then((response) => console.log(response))
                   .catch((err) => console.log(err));
             });
         });
 
+        // User leaves a room
         socket.on('leave_room', (data) => {
             const { username, room } = data;
             socket.leave(room);
             const __createdtime__ = Date.now();
-            // Remove user from memory
             allUsers = leaveRoom(socket.id, allUsers);
             socket.to(room).emit('chatroom_users', allUsers);
             socket.to(room).emit('receive_message', {
@@ -83,9 +68,9 @@ module.exports = (io) => {
               __createdtime__,
             });
             console.log(`${username} has left the chat`);
-            // rooms = rooms.filter((data)=>data.userid != socket.decoded.userid || data.room != room);
         });
 
+        // User disconnects
         socket.on('disconnect', () => {
             console.log('User disconnected from the chat');
             const user = allUsers.find((user) => user.id == socket.id);
@@ -97,5 +82,32 @@ module.exports = (io) => {
               });
             }
         });
+
+        // Search messages in a room
+        socket.on('search_messages', async ({ room, searchTerm }) => {
+            try {
+                const results = await searchMessages(room, searchTerm);
+                socket.emit('search_results', results);
+            } catch (error) {
+                socket.emit('error', 'Could not perform search');
+            }
+        });
+                socket.on('typing', (room) => {
+                socket.to(room).emit('typing', socket.id);
+        });
+
+                socket.on('stop_typing', (room) => {
+                 socket.to(room).emit('stop_typing', socket.id);
+        });
+        socket.on('edit_message', async (data) => {
+            const { messageId, newMessage, room } = data;
+            try {
+                await editMessage(messageId, newMessage);
+                io.in(room).emit('message_edited', { messageId, newMessage });
+            } catch (error) {
+                socket.emit('error', 'Could not edit message');
+            }
+        });
+        
     });
 }
