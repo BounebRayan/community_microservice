@@ -16,7 +16,7 @@ async function saveMessage(message, username, room, __createdtime__) {
     return result.insertedId;
   } catch (error) {
     console.error('Error saving message to MongoDB:', error);
-    throw error;
+    //throw error;
   }
 }
 

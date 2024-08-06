@@ -14,7 +14,7 @@ async function getMessages(room) {
     return messages;
   } catch (error) {
     console.error('Error fetching messages from MongoDB:', error);
-    throw error;
+    //throw error;
   }
 }
 
