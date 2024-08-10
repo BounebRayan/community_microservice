@@ -18,7 +18,7 @@ async function connectToDatabase() {
   try {
     await client.connect();
     const db = client.db(dbName);
-    console.log('Successfully connected to database');
+    //console.log('Successfully connected to database');
     dbInstance = { db, client };
     return dbInstance;
   } catch (error) {

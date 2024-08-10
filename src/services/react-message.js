@@ -1,16 +1,16 @@
-const connectToDatabase = require('../database/connexion');
+const connectToDatabase = require('../config/databaseConfig');
 const { ObjectId } = require('mongodb');
 
 
-const reactMessage = async (messageId, reaction, username) => {
+const reactMessage = async (messageId, userId, reaction, username) => {
     try {
-        const { db, client } = await connectToDatabase();
+        const { db } = await connectToDatabase();
         const collection = db.collection('messages');
-        const id = new ObjectId(messageId);
+        const Id = new ObjectId(messageId);
 
-        const res= await collection.updateOne(
-            { _id: id },
-            { $push: { reactions: { reaction, username } } }
+        const res = await collection.updateOne(
+            { _id: Id },
+            { $push: { reactions: { reaction, username, userId } } }
         );
     } catch (error) {
         console.error('Error reacting to message:', error);

@@ -1,8 +1,8 @@
-const connectToDatabase = require('../database/connexion');
+const connectToDatabase = require('../config/databaseConfig');
 
 const searchMessages = async (room, searchTerm) => {
     try {
-        const { db, client } = await connectToDatabase();
+        const { db } = await connectToDatabase();
         const collection = db.collection('messages');
 
         const results = await collection.find({ room: room, message: { $regex: searchTerm, $options: 'i' } })

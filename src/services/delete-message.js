@@ -1,21 +1,31 @@
-const connectToDatabase = require('../database/connexion');
+const connectToDatabase = require('../config/databaseConfig');
 const { ObjectId } = require('mongodb');
 
-async function editMessage(messageId) {
-  try {
-    const { db, client } = await connectToDatabase();
-    const collection = db.collection('messages');
-    const id = new ObjectId(messageId);
+async function deleteMessage(messageId, userId) {
+    try {
+        const { db } = await connectToDatabase();
+        const collection = db.collection('messages');
+        const id = new ObjectId(messageId);
 
-    // ! need to fetch user than confirm it's the owner using the token userid
-    await collection.deleteOne(
-        { _id: id });
+        // Fetch the message to confirm ownership
+        const message = await collection.findOne({ _id: id });
+        //console.log(message);
 
-    //client.close();
-  } catch (error) {
-    console.error('Error fetching messages from MongoDB:', error);
-    //throw error;
-  }
+        if (!message) {
+            throw new Error('Message not found');
+        }
+
+        if (message.userId !== userId) {
+            throw new Error('User not authorized to delete this message');
+        }
+
+        const res = await collection.deleteOne({ _id: id });
+
+        return res;
+    } catch (error) {
+        console.error('Error deleting message from MongoDB:', error);
+        throw error;
+    }
 }
 
-module.exports = editMessage;
+module.exports = deleteMessage;
