@@ -103,12 +103,12 @@ module.exports = (io) => {
             }
         });
 
-        socket.on('typing', async (room) => {
-            socket.to(room).emit('typing', username);
+        socket.on('typing', async ({room}) => {
+            socket.to(room).emit('typing', {username,room});
         });
 
-        socket.on('stop_typing', async (room) => {
-            socket.to(room).emit('stop_typing', username);
+        socket.on('stop_typing', async ({room}) => {
+            socket.to(room).emit('stop_typing', {username,room});
         });
 
         // New event to load the last 100 messages for the selected room
@@ -123,10 +123,10 @@ module.exports = (io) => {
         });
 
         // New event to load the last 100 messages for the selected room
-        socket.on('get_onlineUsers', async (room) => {
+        socket.on('get_online_users', async ({room}) => {
             try {
                 const chatRoomUsers = allUsers.filter((user) => user.room === room);
-                socket.to(room).emit('chatroom_users', chatRoomUsers);
+                //socket.to(room).emit('chatroom_users', chatRoomUsers);
                 socket.emit('chatroom_users', chatRoomUsers);
                 } catch (err) {
                 console.log(err);
@@ -149,7 +149,8 @@ module.exports = (io) => {
             socket.leave(room);
             const createdtime = Date.now();
             allUsers = leaveRoom(socket.id, allUsers);
-            socket.to(room).emit('chatroom_users', allUsers);
+            const chatRoomUsers = allUsers.filter((user) => user.room === room);
+            socket.to(room).emit('chatroom_users', chatRoomUsers);
             socket.to(room).emit('receive_message', {
                 username: CHAT_BOT,
                 message: `${username} has left the chat`,
